@@ -19,6 +19,7 @@ import net.runelite.client.plugins.microbot.util.bank.enums.BankLocation;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.dialogues.Rs2Dialogue;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.util.widget.Rs2Widget;
 import net.runelite.client.plugins.microbot.shortestpath.Restriction;
@@ -179,6 +180,10 @@ public class FornBirdhouseRunsScript extends Script {
                     switch (botStatus) {
                         case TELEPORTING:
                         case VERDANT_TELEPORT:
+                            if (!isOnFossilIsland()) {
+                                if (!teleportToFossilIsland()) break;
+                                Rs2Walker.disableTeleports = true;
+                            }
                             Rs2Walker.walkTo(birdhouseLocation1);
                             botStatus = states.DISMANTLE_HOUSE_1;
                             advanced = true;
@@ -529,6 +534,36 @@ public class FornBirdhouseRunsScript extends Script {
     private boolean isOnFossilIsland() {
         WorldPoint loc = Rs2Player.getWorldLocation();
         return loc != null && FOSSIL_ISLAND_REGIONS.contains(loc.getRegionID());
+    }
+
+    private boolean teleportToFossilIsland() {
+        List<Integer> pendantIds = Arrays.asList(
+                ItemID.NECKLACE_OF_DIGSITE_1,
+                ItemID.NECKLACE_OF_DIGSITE_2,
+                ItemID.NECKLACE_OF_DIGSITE_3,
+                ItemID.NECKLACE_OF_DIGSITE_4,
+                ItemID.NECKLACE_OF_DIGSITE_5
+        );
+        for (int id : pendantIds) {
+            if (Rs2Inventory.contains(id)) {
+                log.info("Rubbing digsite pendant (id={}) to teleport to Fossil Island", id);
+                if (!Rs2Inventory.interact(id, "Rub")) return false;
+                if (!sleepUntil(Rs2Dialogue::hasSelectAnOption, 5000)) {
+                    log.warn("Pendant rub did not open destination dialog");
+                    return false;
+                }
+                Rs2Dialogue.clickOption("Fossil Island");
+                if (!sleepUntil(this::isOnFossilIsland, 15000)) {
+                    log.warn("Did not arrive on Fossil Island after pendant teleport");
+                    return false;
+                }
+                log.info("Arrived on Fossil Island at {}", Rs2Player.getWorldLocation());
+                return true;
+            }
+        }
+        log.error("No digsite pendant found in inventory");
+        shutdown();
+        return false;
     }
 
     /** True if the inventory already has everything a full run needs. The digsite
