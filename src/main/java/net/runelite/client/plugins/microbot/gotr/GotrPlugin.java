@@ -41,7 +41,7 @@ import java.util.regex.Matcher;
 )
 @Slf4j
 public class GotrPlugin extends Plugin {
-    public static final String version = "1.5.7";
+    public static final String version = "1.6.0";
 
     @Inject
     private GotrConfig config;
@@ -150,6 +150,8 @@ public class GotrPlugin extends Plugin {
             GotrScript.timeSincePortal = Optional.of(Instant.now());
             GotrScript.isFirstPortal = true;
             GotrScript.state = GotrState.ENTER_GAME;
+            // New round → roll a fresh play "mood" so no two games are shaped identically.
+            GotrScript.rollRoundIntent();
         } else if (msg.contains("The rift will become active in 30 seconds.")) {
             if (Microbot.isPluginEnabled(BreakHandlerPlugin.class)) {
                 BreakHandlerScript.setLockState(true);
